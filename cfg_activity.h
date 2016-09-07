@@ -88,7 +88,7 @@ const char http_header[] = "HTTP/1.1 200 OK\n"
   "</head>\n"
   "<body style=\"background-color: DimGrey;\">\n"
     "<header>\n"
-      "<h2>COMPTEUR DE PASSAGES</h2>\n"
+      "<h2>MOTION COUNTER</h2>\n"
     "</header>\n"
     "<section>\n";
  
@@ -96,7 +96,7 @@ const char http_header[] = "HTTP/1.1 200 OK\n"
 
 const char html_page_content_end[] = "</section>\n"
     "<footer>\n"
-     "<form method=\"post\"> <button type=\"submit\">RAZ compteur</button> </form>\n"
+     "<form method=\"post\"> <button type=\"submit\">RESET counter</button> </form>\n"
     "</footer>\n"
   "</body>\n"
 "</html>\n";

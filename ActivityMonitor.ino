@@ -7,6 +7,7 @@
  *  If a form response is recevied, it resets the counter
  *  HISTORY:
  *  - Sept 4 2016 : first draft on Arduino M0
+ *  - Sept 7 2016 : added time since last reset or motion
   */
   // include for ethernet shield
 #include <SPI.h>
@@ -37,6 +38,8 @@ volatile int analog_sensor_value;
 boolean rbi_lastState = false;
 boolean rbi_newState = false;
 int rint_counter= 0;
+
+unsigned long rl_TimeSinceLastActivityOrReset_ms;
 // =====================
 
  
@@ -105,6 +108,10 @@ void loop()
  */
 inline void cyclic_Task_SENSOR(void)
 {
+    // update time counter since last reset or last motion (see below)
+    rl_TimeSinceLastActivityOrReset_ms = millis();
+    
+    // check motion sensor (PIR)
     analog_sensor_value = analogRead(IR_SENSOR);
     // detection = high state for 4s (3.5V)
     // convert to digital data
@@ -116,6 +123,11 @@ inline void cyclic_Task_SENSOR(void)
       rint_counter++;
        Serial.print("rint_counter ");
        Serial.println(rint_counter);
+       Serial.print("inactive counter ms: ");
+       Serial.println(rl_TimeSinceLastActivityOrReset_ms); 
+      
+       // 0s since last change (i.e. now)
+       rl_TimeSinceLastActivityOrReset_ms = 0;
     }
     
     rbi_lastState = rbi_newState;
@@ -160,7 +172,7 @@ inline void cyclic_Task_WEBserver(void)
                               // available bytes (HTTP request) : read them until HTTP head is complete : blank line CR/LF)
                               isHTTPrequestComplete = clientReadBuffer(&client, rint_NbBytesToRead, string_ReceivedLine);
                               Serial.println("HTTP request START =========================================");
-                              Serial.print(string_ReceivedLine);
+                             // Serial.print(string_ReceivedLine);
                               Serial.println("HTTP request END ===========================================");
                               rint_NbBytesToRead = client.available();               
 
@@ -176,12 +188,12 @@ inline void cyclic_Task_WEBserver(void)
                             Serial.println("ERROR : HTTP request exceeds buffer size : STOP");
                             client.stop();
                          } else 
-                         {
+                         {                              
                              
                               // check HTTP request: 
                              if (strstr(string_ReceivedLine,"GET /") != NULL)
                              {
-                                // process web page request
+                                // process web page request -----------------------------------------------
                                 Serial.println(">>>VALID HTTP : REQUEST ============== : display page ");
                                 
                                 SendHTMLpage();
@@ -193,16 +205,14 @@ inline void cyclic_Task_WEBserver(void)
                              } else if (strstr(string_ReceivedLine,"POST /") != NULL)
                              {
                              
-                                // process http form request
+                                // process http form request ----------------------------------------------
                                 Serial.println(">>>VALID HTTP :  FORM ============== : reset counter ");
                                 // here we just expected a click on the reset button
                                 // we have to reset the counter in this case
 
                                 // reset counter
                                 rint_counter = 0;
-                                 Serial.print("rint_counter ");
-                                 Serial.println(rint_counter);
-                                                            
+                                                                                            
                                 SendHTMLpage();
                                 delay(500);
                                 // triggers the page display
@@ -361,10 +371,33 @@ void SendHTMLpage(void)
       // beginning 
       HTTP_TARGET.println(html_page_content_begin);
  
-      // counter
+      // motion counter display
       HTTP_TARGET.print("<h2 style=\"font-size:500\%;\">");
       HTTP_TARGET.print(rint_counter);   
       HTTP_TARGET.println("</h2>");
+
+      
+      // inactivity time display
+      
+      
+      if (rint_counter != 0)
+      {
+            // Time since last reset in mn:
+            HTTP_TARGET.print("<h2 style=\"font-size:200\%;\">");
+            HTTP_TARGET.print ("Inactive period: ");
+      
+            // quick and dirty /60000 -> shift right 16
+            unsigned short rint_TimeSinceLastActivityOrReset_s = (unsigned short)(rl_TimeSinceLastActivityOrReset_ms >> 16);
+            
+            HTTP_TARGET.print(rint_TimeSinceLastActivityOrReset_s);
+            HTTP_TARGET.print (" mn");   
+            HTTP_TARGET.println("</h2>");
+      } else
+      {
+        // no detection up to now: cannot communicate
+        
+      }
+     
       
       // end
       HTTP_TARGET.println(html_page_content_end);
