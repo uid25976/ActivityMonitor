@@ -39,7 +39,8 @@ boolean rbi_lastState = false;
 boolean rbi_newState = false;
 int rint_counter= 0;
 
-unsigned long rl_TimeSinceLastActivityOrReset_ms;
+unsigned long rl_TimeStampMotion = 0;
+unsigned long rl_TimeSinceLastActivityOrReset_ms = 0;
 // =====================
 
  
@@ -107,10 +108,7 @@ void loop()
  *  
  */
 inline void cyclic_Task_SENSOR(void)
-{
-    // update time counter since last reset or last motion (see below)
-    rl_TimeSinceLastActivityOrReset_ms = millis();
-    
+{   
     // check motion sensor (PIR)
     analog_sensor_value = analogRead(IR_SENSOR);
     // detection = high state for 4s (3.5V)
@@ -127,7 +125,13 @@ inline void cyclic_Task_SENSOR(void)
        Serial.println(rl_TimeSinceLastActivityOrReset_ms); 
       
        // 0s since last change (i.e. now)
+       rl_TimeStampMotion = millis();
        rl_TimeSinceLastActivityOrReset_ms = 0;
+    } else
+    {
+        // time elapsed since previous mouvment
+        rl_TimeSinceLastActivityOrReset_ms = millis() - rl_TimeStampMotion;
+        
     }
     
     rbi_lastState = rbi_newState;
